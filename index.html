@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ruleta Literaria 3D</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow-x: hidden;
+            /* Un degradado mucho más vibrante y luminoso (Crepúsculo Mágico) */
+            background: linear-gradient(135deg, #1e3a8a, #6b21a8, #be185d, #0f766e);
+            background-size: 400% 400%;
+            animation: gradientBG 20s ease infinite;
+            color: white;
+            font-family: 'Lora', serif;
+            min-height: 100svh; /* svh es mejor para móviles, ignora la barra de navegación */
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                radial-gradient(2px 2px at 40px 60px, #fbbf24, transparent),
+                radial-gradient(2px 2px at 150px 120px, #e879f9, transparent),
+                radial-gradient(2px 2px at 90px 200px, #fbbf24, transparent),
+                radial-gradient(3px 3px at 250px 50px, #818cf8, transparent),
+                radial-gradient(2px 2px at 300px 180px, #e2e8f0, transparent);
+            background-repeat: repeat;
+            background-size: 350px 350px;
+            animation: floatStars 30s linear infinite;
+            opacity: 0.9;
+            z-index: -2;
+            pointer-events: none;
+        }
+
+        @keyframes floatStars {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-350px); }
+        }
+
+        h1, h2, h3, .font-cinzel {
+            font-family: 'Cinzel', serif;
+        }
+        
+        h1.font-cinzel {
+            filter: drop-shadow(0 0 15px rgba(234, 179, 8, 0.4));
+        }
+
+        /* Wheel Container (2D) */
+        .scene {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 1.5rem;
+            position: relative;
+            width: 100%;
+            padding: 0 1rem;
+        }
+
+        .wheel-container {
+            position: relative;
+            transition: transform 0.3s ease;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.6), inset 0 0 20px rgba(0,0,0,0.5);
+            border-radius: 50%;
+            background: #1e293b;
+            padding: 0;
+            width: 100%;
+            max-width: 450px; /* Un poco más pequeña para no tocar los bordes */
+            aspect-ratio: 1 / 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .wheel-container::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 105%; height: 105%;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.4);
+            filter: blur(20px);
+            z-index: -1;
+        }
+
+        canvas {
+            display: block;
+            border-radius: 50%;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* Center Hub */
+        .hub {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            /* Uso de clamp para escalar el botón suavemente en celulares */
+            width: clamp(60px, 15vw, 80px);
+            height: clamp(60px, 15vw, 80px);
+            background: radial-gradient(circle at 30% 30%, #fef08a, #d4af37, #78350f);
+            border-radius: 50%;
+            border: clamp(2px, 1vw, 4px) solid #fcd34d;
+            box-shadow: 
+                0 10px 15px rgba(0,0,0,0.5), 
+                inset -5px -5px 15px rgba(0,0,0,0.3),
+                inset 5px 5px 15px rgba(255,255,255,0.6);
+            z-index: 10;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: manipulation; /* Evita zoom táctil accidental en móviles */
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .hub::after {
+            content: 'GIRAR';
+            font-family: 'Cinzel', serif;
+            font-size: clamp(10px, 2.5vw, 13px);
+            font-weight: 900;
+            color: #451a03;
+            text-shadow: 1px 1px 0px rgba(255,255,255,0.5);
+            letter-spacing: 1px;
+        }
+
+        .hub:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+            box-shadow: 0 15px 25px rgba(252, 211, 77, 0.4), inset 0 0 20px rgba(255,255,255,0.8);
+        }
+
+        .hub:active {
+            transform: translate(-50%, -50%) scale(0.95);
+        }
+
+        /* Elegant Metallic Pointer */
+        .pointer {
+            position: absolute;
+            /* Escala el puntero proporcionalmente */
+            top: clamp(-15px, -4vw, -20px);
+            left: 50%;
+            transform: translateX(-50%);
+            width: clamp(30px, 8vw, 40px);
+            height: clamp(45px, 12vw, 60px);
+            background: linear-gradient(180deg, #fef08a, #d4af37, #78350f);
+            clip-path: polygon(50% 100%, 0 0, 100% 0);
+            z-index: 20;
+            filter: drop-shadow(0 5px 5px rgba(0,0,0,0.5));
+        }
+
+        .pointer::after {
+            content: '';
+            position: absolute;
+            top: 2px; left: 5px; right: 5px; bottom: 10px;
+            background: linear-gradient(180deg, #fff, transparent);
+            clip-path: polygon(50% 100%, 0 0, 100% 0);
+            opacity: 0.4;
+        }
+
+        /* Glassmorphism Modal */
+        .modal {
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.5s ease;
+            backdrop-filter: blur(15px);
+            background: rgba(15, 23, 42, 0.6); /* Fondo un poco más oscuro para contrastar en móvil */
+        }
+
+        .modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.15); /* Tarjeta más luminosa */
+            border: 1px solid rgba(255, 215, 0, 0.4); /* Borde dorado más brillante */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.1);
+            transform: scale(0.8) translateY(50px);
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            max-height: 90svh; /* Asegura que la tarjeta no sobrepase la pantalla del móvil */
+            overflow-y: auto; /* Scroll interno si la cita es muy larga */
+        }
+
+        .modal.active .card {
+            transform: scale(1) translateY(0);
+        }
+
+        .emoji-float {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        /* Confetti Canvas */
+        #confetti {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center py-10 relative">
+
+    <canvas id="confetti"></canvas>
+
+    <!-- Ajustes de padding (py-6 en vez de py-10) para aprovechar espacio en pantallas bajas -->
+    <div class="text-center z-10 max-w-2xl px-4 mt-4">
+        <!-- Textos dinámicos más pequeños en móviles -->
+        <h1 class="text-3xl sm:text-4xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-yellow-500 to-yellow-700 mb-2 drop-shadow-lg font-cinzel">
+            Ruleta Literaria
+        </h1>
+        <p class="text-indigo-100 text-sm sm:text-lg md:text-xl italic font-semibold drop-shadow-md">
+            "Donde las voces de la humanidad convergen a través del tiempo y el espacio"
+        </p>
+    </div>
+
+    <!-- 3D Scene -->
+    <div class="scene w-full max-w-lg mx-auto">
+        <div class="pointer"></div>
+        <div class="wheel-container">
+            <canvas id="wheel" width="600" height="600"></canvas>
+            <div class="hub"></div>
+        </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div id="resultModal" class="modal fixed inset-0 flex items-center justify-center z-50 p-4">
+        <div class="card max-w-lg w-full rounded-3xl p-6 md:p-8 text-center relative backdrop-blur-md">
+            <!-- Decorative elements -->
+            <div class="absolute -top-16 -left-16 w-32 h-32 bg-yellow-500 rounded-full mix-blend-multiply filter blur-2xl opacity-50 pointer-events-none"></div>
+            <div class="absolute -bottom-16 -right-16 w-32 h-32 bg-blue-500 rounded-full mix-blend-multiply filter blur-2xl opacity-50 pointer-events-none"></div>
+            
+            <button id="closeBtn" class="absolute top-4 right-4 text-gray-400 hover:text-white text-3xl font-bold transition-colors z-10 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10">
+                &times;
+            </button>
+            
+            <div id="modalEmoji" class="text-6xl md:text-7xl mb-4 emoji-float filter drop-shadow-xl mt-2">✨</div>
+            
+            <div class="relative px-2 md:px-4">
+                <span class="text-4xl md:text-5xl text-yellow-500 opacity-30 absolute -top-4 -left-2 md:-left-4 font-cinzel">"</span>
+                <p id="modalQuote" class="text-xl sm:text-2xl md:text-3xl font-medium mb-6 leading-relaxed italic relative z-10 text-white">
+                    El mensaje aparecerá aquí.
+                </p>
+                <span class="text-4xl md:text-5xl text-yellow-500 opacity-30 absolute -bottom-6 -right-2 md:-right-4 font-cinzel">"</span>
+            </div>
+
+            <div class="border-t border-gray-600/50 pt-5 mt-2">
+                <h3 id="modalAuthor" class="text-lg sm:text-xl md:text-2xl font-bold text-yellow-400 font-cinzel uppercase tracking-wider">
+                    Nombre del Autor
+                </h3>
+                <p id="modalCountry" class="text-gray-300 mt-1 flex items-center justify-center gap-1.5 text-sm sm:text-base">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>País</span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data Structure
+        const authors = [
+            { author: "Oscar Wilde", country: "Irlanda", emoji: "🍀", quote: "Sé tú mismo, los demás puestos ya están ocupados." },
+            { author: "William Shakespeare", country: "Reino Unido", emoji: "🎭", quote: "Sabemos lo que somos, pero no lo que podemos llegar a ser." },
+            { author: "Katherine Mansfield", country: "Nueva Zelanda", emoji: "🌸", quote: "Sé verdadera contigo misma y eso te dará la fuerza para ser verdadera con los demás." },
+            { author: "Jorge Luis Borges", country: "Argentina", emoji: "⏳", quote: "Cualquier destino, por largo y complicado que sea, consta en realidad de un solo momento: el momento en que el hombre sabe para siempre quién es." },
+            { author: "Sor Juana Inés de la Cruz", country: "México", emoji: "🪶", quote: "No estudio por saber más, sino por ignorar menos." },
+            { author: "Rumi", country: "Afganistán/Persia", emoji: "🌌", quote: "Ayer era inteligente y quería cambiar el mundo. Hoy soy sabio y he decidido cambiarme a mí mismo." },
+            { author: "Lu Xun", country: "China", emoji: "🏮", quote: "La esperanza es como un camino; originalmente no había camino, pero cuando muchas personas caminan por él, el camino aparece." },
+            { author: "Fyodor Dostoevsky", country: "Rusia", emoji: "❄️", quote: "El secreto de la existencia humana no solo reside en vivir, sino en saber para qué se vive." },
+            { author: "Chinua Achebe", country: "Nigeria", emoji: "🌍", quote: "Si no te gusta la historia de alguien, escribe la tuya propia." },
+            { author: "Gabriela Mistral", country: "Chile", emoji: "🏔️", quote: "Donde haya un error que enmendar, enmiéndalo tú." },
+            { author: "Virginia Woolf", country: "Reino Unido", emoji: "🌊", quote: "No hay barrera, cerradura ni cerrojo que puedas imponer a la libertad de mi mente." },
+            { author: "Haruki Murakami", country: "Japón", emoji: "🐈", quote: "Una vez que la tormenta termine, no recordarás cómo lo lograste... pero una cosa es segura: no serás la misma persona que entró en ella." },
+            { author: "Rabindranath Tagore", country: "India", emoji: "☀️", quote: "Si lloras por haber perdido el sol, las lágrimas no te permitirán ver las estrellas." },
+            { author: "Murasaki Shikibu", country: "Japón", emoji: "👘", quote: "A través de las cosas pequeñas nos acercamos a las grandes verdades." },
+            { author: "Nawal El Saadawi", country: "Egipto", emoji: "👁️", quote: "Nada es más peligroso que la verdad en un mundo que miente." },
+            { author: "Nadine Gordimer", country: "Sudáfrica", emoji: "⚖️", quote: "La verdad no siempre es liberadora; a menudo es una carga pesada." },
+            { author: "Victor Hugo", country: "Francia", emoji: "🗼", quote: "Incluso la noche más oscura terminará y el sol saldrá." },
+            { author: "Wisława Szymborska", country: "Polonia", emoji: "📖", quote: "Cualquier historia es siempre una continuación, y el libro de los sucesos siempre está abierto a la mitad." },
+            { author: "Gabriel García Márquez", country: "Colombia", emoji: "🦋", quote: "Lo único que llega con seguridad es la muerte, pero lo que importa es cómo decidimos esperarla." },
+            { author: "Toni Morrison", country: "EE. UU.", emoji: "✊🏽", quote: "Si tienes algún poder, tu tarea es empoderar a alguien más." },
+            { author: "Ben Okri", country: "Nigeria", emoji: "🥁", quote: "Para envenenar a un pueblo, envenena sus historias. Una nación es tan buena como sus historias." },
+            { author: "Fatima Bhutto", country: "Pakistán", emoji: "🕌", quote: "La cultura es la única defensa que tenemos contra la brutalidad del mundo." },
+            { author: "Patrick White", country: "Australia", emoji: "🦘", quote: "La humildad es la única sabiduría verdadera que podemos esperar adquirir." },
+            { author: "Safo de Lesbos", country: "Grecia", emoji: "🏺", quote: "Lo que es bello es bueno, y quien es bueno pronto será también bello." },
+            { author: "Tsitsi Dangarembga", country: "Zimbabue", emoji: "🇿🇼", quote: "La condición de libertad es algo que se debe imaginar antes de que pueda existir." },
+            { author: "Emily Dickinson", country: "EE. UU.", emoji: "🕊️", quote: "Para viajar lejos, no hay mejor nave que un libro." },
+            { author: "Miguel de Cervantes", country: "España", emoji: "🛡️", quote: "El que lee mucho y anda mucho, ve mucho y sabe mucho." },
+            { author: "Janet Frame", country: "Nueva Zelanda", emoji: "💭", quote: "Escribir (o pensar) es una forma de rescatar la vida de entre los escombros de la memoria." },
+            { author: "Wole Soyinka", country: "Nigeria", emoji: "🌱", quote: "La mano que detiene la justicia es la misma que siembra la semilla de la rebelión." }
+        ];
+
+        // Canvas Setup
+        const canvas = document.getElementById('wheel');
+        const ctx = canvas.getContext('2d');
+        const modal = document.getElementById('resultModal');
+        const closeBtn = document.getElementById('closeBtn');
+        const hubBtn = document.querySelector('.hub');
+
+        const numSegments = authors.length;
+        const arc = (2 * Math.PI) / numSegments;
+        let currentAngle = 0;
+        let isSpinning = false;
+        let spinTimeout = null;
+
+        // Colors Generation (Jewel-toned mystical colors)
+        const colors = authors.map((_, i) => {
+            const hue = (i * 137.508) % 360;
+            return `hsl(${hue}, 85%, 35%)`; // Rich, deep saturated tones
+        });
+
+        function drawWheel() {
+            const radius = canvas.width / 2;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Translate to center
+            ctx.save();
+            ctx.translate(radius, radius);
+            ctx.rotate(currentAngle);
+
+            // Draw Segments
+            for (let i = 0; i < numSegments; i++) {
+                const angle = i * arc;
+                
+                // Create a gradient for each slice to give it deep 3D shading
+                const sliceGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+                sliceGradient.addColorStop(0, '#475569'); // Aclarado del centro de la ruleta (antes era casi negro)
+                sliceGradient.addColorStop(1, colors[i]);
+
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, radius, angle, angle + arc);
+                ctx.lineTo(0, 0);
+                ctx.fillStyle = sliceGradient;
+                ctx.fill();
+
+                // Draw Text / Emoji
+                ctx.save();
+                ctx.translate(
+                    Math.cos(angle + arc / 2) * (radius - 50),
+                    Math.sin(angle + arc / 2) * (radius - 50)
+                );
+                // Rotate text to face outward properly
+                ctx.rotate(angle + arc / 2 + Math.PI / 2);
+                
+                ctx.fillStyle = "white";
+                ctx.font = "32px 'Arial'"; // Larger Emojis
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                
+                // Add soft black shadow behind the emoji to make it pop
+                ctx.shadowColor = "rgba(0,0,0,0.8)";
+                ctx.shadowBlur = 8;
+                ctx.shadowOffsetY = 2;
+
+                ctx.fillText(authors[i].emoji, 0, 0);
+                
+                ctx.restore();
+            }
+
+            // Draw Dividers between slices
+            for (let i = 0; i < numSegments; i++) {
+                const angle = i * arc;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = "rgba(255, 215, 0, 0.4)"; // Semi-transparent gold
+                ctx.stroke();
+            }
+
+            // Draw Outer Metallic Rim
+            ctx.beginPath();
+            ctx.arc(0, 0, radius - 10, 0, 2 * Math.PI);
+            ctx.lineWidth = 20;
+            const rimGradient = ctx.createLinearGradient(-radius, -radius, radius, radius);
+            rimGradient.addColorStop(0, '#fef08a'); // Light gold
+            rimGradient.addColorStop(0.25, '#d4af37'); // Mid gold
+            rimGradient.addColorStop(0.5, '#78350f'); // Dark gold/brown
+            rimGradient.addColorStop(0.75, '#d4af37');
+            rimGradient.addColorStop(1, '#fef08a');
+            ctx.strokeStyle = rimGradient;
+            ctx.stroke();
+            
+            // Inner thin metallic line for detail
+            ctx.beginPath();
+            ctx.arc(0, 0, radius - 20, 0, 2 * Math.PI);
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+
+        // Spin Physics
+        let spinVelocity = 0;
+        let targetAngle = 0;
+
+        function easeOutQuart(t) {
+            return 1 - (--t) * t * t * t;
+        }
+
+        function animateSpin(startTime, duration, startAngle, totalRotation) {
+            const currentTime = Date.now();
+            const elapsed = currentTime - startTime;
+            
+            if (elapsed < duration) {
+                // Calculate progress (0 to 1) with easing
+                const progress = easeOutQuart(elapsed / duration);
+                currentAngle = startAngle + (totalRotation * progress);
+                drawWheel();
+                requestAnimationFrame(() => animateSpin(startTime, duration, startAngle, totalRotation));
+            } else {
+                // Spin finished
+                currentAngle = startAngle + totalRotation;
+                drawWheel();
+                isSpinning = false;
+                determineWinner();
+            }
+        }
+
+        function spinWheel() {
+            if (isSpinning) return;
+            isSpinning = true;
+            
+            // Hide modal if open
+            modal.classList.remove('active');
+
+            const spinDuration = 5000 + Math.random() * 2000; // 5 to 7 seconds
+            
+            // Choose a random winning index
+            const winningIndex = Math.floor(Math.random() * numSegments);
+            
+            // Calculate angle required to align the winning index at the TOP (-90 degrees or -PI/2)
+            // The pointer is at -PI/2 relative to the canvas center.
+            const pointerAngle = -Math.PI / 2;
+            
+            // Each segment's center angle is: (i * arc) + (arc / 2)
+            // We want currentAngle + segmentCenter = pointerAngle + (multiple of 2PI)
+            const segmentCenterAngle = (winningIndex * arc) + (arc / 2);
+            
+            // Base angle to land exactly on the target
+            let targetRotation = pointerAngle - segmentCenterAngle;
+            
+            // Normalize to positive
+            while (targetRotation < 0) targetRotation += 2 * Math.PI;
+            
+            // Add extra spins (5 to 10 full rotations)
+            const extraSpins = (5 + Math.floor(Math.random() * 5)) * 2 * Math.PI;
+            const totalRotation = extraSpins + targetRotation - (currentAngle % (2 * Math.PI));
+
+            const startAngle = currentAngle;
+            const startTime = Date.now();
+
+            animateSpin(startTime, spinDuration, startAngle, totalRotation);
+        }
+
+        function determineWinner() {
+            // Because we calculated exact landing, we can just find it based on normalized angle
+            const normalizedAngle = currentAngle % (2 * Math.PI);
+            const pointerAngle = -Math.PI / 2;
+            
+            // Offset angle to find which segment is at the pointer
+            let checkAngle = pointerAngle - normalizedAngle;
+            while(checkAngle < 0) checkAngle += 2 * Math.PI;
+            
+            const winningIndex = Math.floor(checkAngle / arc) % numSegments;
+            const winner = authors[winningIndex];
+
+            showResult(winner);
+        }
+
+        function showResult(winner) {
+            document.getElementById('modalEmoji').innerText = winner.emoji;
+            document.getElementById('modalQuote').innerText = winner.quote;
+            document.getElementById('modalAuthor').innerText = winner.author;
+            document.getElementById('modalCountry').innerHTML = `
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span>${winner.country}</span>
+            `;
+            
+            fireConfetti();
+            modal.classList.add('active');
+        }
+
+        // --- Simple Confetti System ---
+        const confCanvas = document.getElementById('confetti');
+        const cCtx = confCanvas.getContext('2d');
+        let particles = [];
+
+        function resizeConfetti() {
+            confCanvas.width = window.innerWidth;
+            confCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeConfetti);
+        resizeConfetti();
+
+        function fireConfetti() {
+            particles = [];
+            for(let i=0; i<100; i++) {
+                particles.push({
+                    x: confCanvas.width / 2,
+                    y: confCanvas.height / 2 + 100,
+                    r: Math.random() * 6 + 2,
+                    dx: Math.random() * 10 - 5,
+                    dy: Math.random() * -15 - 5,
+                    color: `hsl(${Math.random()*360}, 100%, 50%)`,
+                    tilt: Math.floor(Math.random() * 10) - 10,
+                    tiltAngle: 0,
+                    tiltAngleInc: (Math.random() * 0.07) + 0.05
+                });
+            }
+            animateConfetti();
+        }
+
+        function animateConfetti() {
+            requestAnimationFrame(animateConfetti);
+            cCtx.clearRect(0, 0, confCanvas.width, confCanvas.height);
+            
+            let activeParticles = 0;
+            for(let i=0; i<particles.length; i++) {
+                const p = particles[i];
+                p.tiltAngle += p.tiltAngleInc;
+                p.y += (Math.cos(p.tiltAngle) + 1 + p.r / 2) / 2;
+                p.x += Math.sin(p.tiltAngle) * 2;
+                p.dy += 0.1; // gravity
+                p.y += p.dy;
+                p.x += p.dx;
+
+                if (p.y <= confCanvas.height) {
+                    activeParticles++;
+                    cCtx.beginPath();
+                    cCtx.lineWidth = p.r;
+                    cCtx.strokeStyle = p.color;
+                    cCtx.moveTo(p.x + p.tilt + p.r, p.y);
+                    cCtx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r);
+                    cCtx.stroke();
+                }
+            }
+            if(activeParticles === 0) {
+                particles = []; // clear when done
+            }
+        }
+
+        // Event Listeners
+        hubBtn.addEventListener('click', spinWheel);
+        closeBtn.addEventListener('click', () => {
+            modal.classList.remove('active');
+            particles = []; // Stop confetti
+            cCtx.clearRect(0, 0, confCanvas.width, confCanvas.height);
+        });
+
+        // Initialize Wheel
+        // Rotate slightly so it's not starting at 0
+        currentAngle = Math.random() * Math.PI * 2;
+        drawWheel();
+
+    </script>
+</body>
+</html>
