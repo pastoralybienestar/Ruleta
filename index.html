@@ -7,6 +7,34 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
     <style>
+        /* Custom Scrollbar (Estilo Creativo) */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #d4af37 rgba(15, 23, 42, 0.3);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 10px;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #fef08a, #d4af37, #78350f);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #fffbeb, #fbbf24, #92400e);
+            box-shadow: 0 0 10px rgba(252, 211, 77, 0.8);
+        }
+
         body {
             margin: 0;
             overflow-x: hidden;
