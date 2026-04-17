@@ -297,6 +297,12 @@
                     <span>País</span>
                 </p>
             </div>
+
+            <!-- Botón de Descarga para WhatsApp -->
+            <button id="downloadBtn" class="mt-6 w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white py-3 px-4 rounded-xl font-bold transition-all shadow-lg shadow-emerald-900/50 hover:shadow-emerald-500/50 active:scale-95 touch-manipulation">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                <span>Descargar</span>
+            </button>
         </div>
     </div>
 
@@ -346,6 +352,7 @@
         let currentAngle = 0;
         let isSpinning = false;
         let spinTimeout = null;
+        let currentWinner = null; // Almacena el ganador actual para la descarga
 
         // Colors Generation (Jewel-toned mystical colors)
         const colors = authors.map((_, i) => {
@@ -509,9 +516,9 @@
             while(checkAngle < 0) checkAngle += 2 * Math.PI;
             
             const winningIndex = Math.floor(checkAngle / arc) % numSegments;
-            const winner = authors[winningIndex];
+            currentWinner = authors[winningIndex];
 
-            showResult(winner);
+            showResult(currentWinner);
         }
 
         function showResult(winner) {
@@ -586,8 +593,192 @@
             }
         }
 
+        // --- Sistema de Generación de Imagen para WhatsApp (Mejorado y Creativo) ---
+        
+        // Nueva función para calcular líneas y centrar verticalmente perfecto
+        function getLines(context, text, maxWidth) {
+            const words = text.split(" ");
+            const lines = [];
+            let currentLine = words[0];
+
+            for (let i = 1; i < words.length; i++) {
+                const word = words[i];
+                const width = context.measureText(currentLine + " " + word).width;
+                if (width < maxWidth) {
+                    currentLine += " " + word;
+                } else {
+                    lines.push(currentLine);
+                    currentLine = word;
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        }
+
+        function downloadStatusImage() {
+            if (!currentWinner) return;
+
+            // Cambiar estado del botón
+            const btn = document.getElementById('downloadBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Creando Obra...`;
+
+            // Crear un canvas con proporciones de Estado de WhatsApp (1080x1920)
+            const offScreenCanvas = document.createElement('canvas');
+            offScreenCanvas.width = 1080;
+            offScreenCanvas.height = 1920;
+            const ctx = offScreenCanvas.getContext('2d');
+
+            // 1. Fondo Espacial/Nebulosa (Más creativo)
+            ctx.fillStyle = '#0f172a'; // Base azul oscuro espacial
+            ctx.fillRect(0, 0, 1080, 1920);
+
+            // Luz Violeta superior izquierda
+            const glow1 = ctx.createRadialGradient(200, 300, 0, 200, 300, 800);
+            glow1.addColorStop(0, 'rgba(126, 34, 206, 0.5)'); // Purple
+            glow1.addColorStop(1, 'transparent');
+            ctx.fillStyle = glow1; 
+            ctx.fillRect(0, 0, 1080, 1920);
+
+            // Luz Rosa inferior derecha
+            const glow2 = ctx.createRadialGradient(900, 1600, 0, 900, 1600, 800);
+            glow2.addColorStop(0, 'rgba(190, 24, 109, 0.4)'); // Pink
+            glow2.addColorStop(1, 'transparent');
+            ctx.fillStyle = glow2; 
+            ctx.fillRect(0, 0, 1080, 1920);
+
+            // 2. Encabezado "Día del Idioma Español 2026"
+            ctx.fillStyle = "#fbbf24"; // Amarillo dorado
+            ctx.font = "bold 45px 'Cinzel', serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.shadowColor = "rgba(251, 191, 36, 0.5)";
+            ctx.shadowBlur = 20;
+            ctx.fillText("✨ DÍA DEL IDIOMA ESPAÑOL 2026 ✨", 540, 180);
+            
+            // Línea decorativa bajo el título
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.moveTo(340, 240);
+            ctx.lineTo(740, 240);
+            ctx.strokeStyle = "rgba(251, 191, 36, 0.4)";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 3. Dibujar Tarjeta Principal con Sombra Realista
+            ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+            ctx.shadowBlur = 40;
+            ctx.shadowOffsetY = 20;
+            
+            ctx.fillStyle = "rgba(15, 23, 42, 0.7)"; // Azul oscuro semi-transparente
+            ctx.strokeStyle = "rgba(251, 191, 36, 0.6)"; // Borde dorado
+            ctx.lineWidth = 4;
+            
+            const cardY = 380;
+            const cardHeight = 1200;
+
+            if (ctx.roundRect) {
+                ctx.beginPath();
+                ctx.roundRect(90, cardY, 900, cardHeight, 50);
+                ctx.fill();
+                ctx.stroke();
+            } else {
+                ctx.fillRect(90, cardY, 900, cardHeight);
+            }
+
+            // Apagar sombra general para textos
+            ctx.shadowColor = "transparent";
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+
+            // 4. Emoji (Sobresaliendo como medallón en el borde superior de la tarjeta)
+            ctx.font = "160px Arial";
+            ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+            ctx.shadowBlur = 15;
+            ctx.shadowOffsetY = 5;
+            ctx.fillText(currentWinner.emoji, 540, cardY); // Posicionado exactamente en la línea superior
+
+            // 5. Comillas Decorativas Gigantes (Marca de agua de fondo)
+            ctx.shadowColor = "transparent";
+            ctx.fillStyle = "rgba(251, 191, 36, 0.08)";
+            ctx.font = "italic 400px 'Cinzel', serif";
+            ctx.fillText("\"", 200, cardY + 300);
+            ctx.fillText("\"", 880, cardY + cardHeight - 100);
+
+            // 6. Preparar Textos y Calcular Centrado Vertical Perfecto
+            ctx.font = "italic 55px 'Lora', serif";
+            const quoteMaxWidth = 780;
+            const quoteLines = getLines(ctx, currentWinner.quote, quoteMaxWidth);
+            const quoteLineHeight = 85;
+            const totalQuoteHeight = quoteLines.length * quoteLineHeight;
+
+            const authorSectionHeight = 220; // Espacio entre elementos + línea + autor + país
+            const totalContentHeight = totalQuoteHeight + authorSectionHeight;
+
+            // Encontrar el punto Y inicial para que el bloque entero quede en el centro de la tarjeta
+            const cardCenterY = cardY + (cardHeight / 2) + 40; // +40 compensa visualmente el emoji de arriba
+            let currentY = cardCenterY - (totalContentHeight / 2) + (quoteLineHeight / 2);
+
+            // 7. Dibujar Cita Literaria
+            ctx.fillStyle = "#ffffff";
+            ctx.shadowColor = "rgba(0,0,0,0.5)";
+            ctx.shadowBlur = 5;
+            for (let line of quoteLines) {
+                ctx.fillText(line, 540, currentY);
+                currentY += quoteLineHeight;
+            }
+
+            // 8. Línea separadora dorada y pequeña
+            currentY += 30;
+            ctx.shadowColor = "transparent";
+            ctx.beginPath();
+            ctx.moveTo(440, currentY);
+            ctx.lineTo(640, currentY);
+            ctx.strokeStyle = "rgba(251, 191, 36, 0.5)";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // 9. Dibujar Autor
+            currentY += 80;
+            ctx.fillStyle = "#facc15"; // Amarillo más brillante
+            ctx.font = "bold 55px 'Cinzel', serif";
+            ctx.shadowColor = "rgba(0,0,0,0.8)";
+            ctx.shadowBlur = 6;
+            ctx.fillText(currentWinner.author.toUpperCase(), 540, currentY);
+
+            // 10. Dibujar País
+            currentY += 70;
+            ctx.fillStyle = "#cbd5e1"; // Gris claro
+            ctx.font = "40px 'Lora', serif";
+            ctx.shadowColor = "transparent";
+            ctx.fillText(`📍 ${currentWinner.country}`, 540, currentY);
+
+            // 11. Pie de Página Elegante
+            ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+            ctx.font = "30px 'Cinzel', serif";
+            ctx.letterSpacing = "2px";
+            ctx.fillText("RULETA LITERARIA", 540, 1750);
+            
+            ctx.font = "italic 24px 'Lora', serif";
+            ctx.letterSpacing = "0px";
+            ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+            ctx.fillText("Un viaje por las letras y la historia humana", 540, 1800);
+
+            // Descargar la Imagen Final
+            setTimeout(() => {
+                const link = document.createElement('a');
+                link.download = `Dia_del_Idioma_${currentWinner.author.replace(/\s+/g, '_')}.jpg`;
+                link.href = offScreenCanvas.toDataURL('image/jpeg', 0.95); // Alta calidad
+                link.click();
+                
+                // Restaurar botón
+                btn.innerHTML = originalText;
+            }, 600); // Pequeño delay de 600ms para efecto visual
+        }
+
         // Event Listeners
         hubBtn.addEventListener('click', spinWheel);
+        document.getElementById('downloadBtn').addEventListener('click', downloadStatusImage);
         closeBtn.addEventListener('click', () => {
             modal.classList.remove('active');
             particles = []; // Stop confetti
